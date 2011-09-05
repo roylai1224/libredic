@@ -1,0 +1,25 @@
+Redic-cc 
+========
+
+
+Home:     http://http://code.google.com/p/redic-cc/
+Version:  0.9
+Contact:  Atto Mu <atto.mu@gmail.com>
+
+
+Redic-cc is a client library written in plain C++ for communicating 
+with Redis servers. Redis is a high performance key-value database, 
+refer to Redis project page (http://redis.io/) for more information.
+
+Redic-cc aims to be simple, stable and minimum dependence.
+It runs on Linux and Windows platforms, with IPv4/IPv6 network.
+
+
+To build redic-cc static library, run: 
+$ make
+
+
+To test and verify redic-cc, run:
+$ make test
+$ ./test <redis server IP> <redis server Port>
+
