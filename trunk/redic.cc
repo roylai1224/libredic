@@ -80,13 +80,13 @@ bool is_in6(const char *s)
     return true;
 }
 
-class Request
+class request_t
 {
 private:
     string req;
 
 public:
-    Request(int num)
+    request_t(int num)
     {
         char buf[16];
         sprintf(buf, "*%d\r\n", num);
@@ -145,7 +145,7 @@ const char REDIC_INT	= ':';
 const char REDIC_BULK	= '$';
 const char REDIC_MULTI	= '*';
 
-const int REDIC_INVALID		= 0;
+const int REDIC_INVALID     = 0;
 const int REDIC_UNEXPECT	= -1;
 const int REDIC_NOMEM 		= -2;
 const int REDIC_NOFDESC		= -3;
@@ -168,7 +168,7 @@ const char *REDIC_ERRSTR[] =
 	"server return error",
 };
 
-class RedicEntity
+class redic_entity_t
 {
 private:
 	bool ready;
@@ -189,7 +189,7 @@ private:
 
 public:
 
-	RedicEntity()
+	redic_entity_t()
 	{
 #ifdef WIN32
 		WSADATA data;
@@ -199,7 +199,7 @@ public:
 		ready = false;
 	}
 
-	~RedicEntity()
+	~redic_entity_t()
 	{
 		disconn();
 	}
@@ -211,12 +211,7 @@ public:
 
     const char *errstr(int num)
     {
-    	if (num > 0)
-    	{
-    		return "none of error";
-    	}
-
-    	if (num < -8)
+    	if (num > -1 || num < -8 )
     	{
     		return "unknown error";
     	}
@@ -593,7 +588,7 @@ public:
 		return ok;
 	}
 
-    int send_req(Request &req)
+    int send_req(request_t &req)
     {
         if (skt_write(fd, req.str(), req.len()) <= 0)
 		{
@@ -820,7 +815,7 @@ public:
 		return ok;
 	}
 
-	int operate_inline(string &result, Request &req)
+	int operate_inline(string &result, request_t &req)
 	{
 		tv.tv_sec = TIMEOUT_VAL/1000;
 		tv.tv_usec = (TIMEOUT_VAL%1000)*1000;
@@ -837,7 +832,7 @@ public:
 		return ok;
 	}
 
-	int operate_bulk(string &result, Request &req)
+	int operate_bulk(string &result, request_t &req)
 	{
 		tv.tv_sec = TIMEOUT_VAL/1000;
 		tv.tv_usec = (TIMEOUT_VAL%1000)*1000;
@@ -854,7 +849,7 @@ public:
 		return ok;
 	}
 
-	int operate_int(int &result, Request &req)
+	int operate_int(int &result, request_t &req)
 	{
 		tv.tv_sec = TIMEOUT_VAL/1000;
 		tv.tv_usec = (TIMEOUT_VAL%1000)*1000;
@@ -871,7 +866,7 @@ public:
 		return ok;
 	}
 
-	int operate_list(std::list<string> &result, Request &req)
+	int operate_list(std::list<string> &result, request_t &req)
 	{
 		tv.tv_sec = TIMEOUT_VAL/1000;
 		tv.tv_usec = (TIMEOUT_VAL%1000)*1000;
@@ -888,7 +883,7 @@ public:
 		return ok;
 	}
 
-	int operate_set(std::set<string> &result, Request &req)
+	int operate_set(std::set<string> &result, request_t &req)
 	{
 		tv.tv_sec = TIMEOUT_VAL/1000;
 		tv.tv_usec = (TIMEOUT_VAL%1000)*1000;
@@ -907,12 +902,12 @@ public:
 };
 
 
-Redic::Redic()
+redic_t::redic_t()
 {
 	entity = NULL;
 }
 
-Redic::~Redic()
+redic_t::~redic_t()
 {
 	if (entity)
 	{
@@ -920,7 +915,7 @@ Redic::~Redic()
 	}
 }
 
-const char *Redic::errstr(int num)
+const char *redic_t::errstr(int num)
 {
     if (entity)
     {
@@ -932,14 +927,14 @@ const char *Redic::errstr(int num)
     }
 }
 
-int Redic::connect(const char *host, short port)
+int redic_t::connect(const char *host, short port)
 {
     host = host ? host : "localhost";
     port = port ? port : 6379;
 
 	if (!entity)
 	{
-		entity = new RedicEntity;
+		entity = new redic_entity_t;
 		if (!entity)
 		{
 			LOG("fail to alloc entity");
@@ -950,7 +945,7 @@ int Redic::connect(const char *host, short port)
 	return entity->conn(host, port);
 }
 
-void Redic::disconn()
+void redic_t::disconn()
 {
 	if (entity)
 	{
@@ -958,9 +953,9 @@ void Redic::disconn()
 	}
 }
 
-int Redic::auth(const char *password)
+int redic_t::auth(const char *password)
 {
-    Request req(2);
+    request_t req(2);
     req.append("AUTH");
     req.append(password);
 
@@ -975,9 +970,9 @@ int Redic::auth(const char *password)
 	return ok;
 }
 
-int Redic::info(string &info)
+int redic_t::info(string &info)
 {
-    Request req(1);
+    request_t req(1);
     req.append("INFO");
 
 	if (entity->operate_bulk(info, req) != ok)
@@ -986,9 +981,9 @@ int Redic::info(string &info)
 	return ok;
 }
 
-int Redic::ping()
+int redic_t::ping()
 {
-    Request req(1);
+    request_t req(1);
     req.append("PING");
 
 	string result;
@@ -1002,9 +997,9 @@ int Redic::ping()
 	return ok;
 }
 
-int Redic::save()
+int redic_t::save()
 {
-    Request req(1);
+    request_t req(1);
     req.append("SAVE");
 
 	string result;
@@ -1018,9 +1013,9 @@ int Redic::save()
 	return ok;
 }
 
-int Redic::bgsave()
+int redic_t::bgsave()
 {
-    Request req(1);
+    request_t req(1);
     req.append("BGSAVE");
 
 	string result;
@@ -1032,9 +1027,9 @@ int Redic::bgsave()
 	return ok;
 }
 
-int Redic::lastsave(time_t &tm)
+int redic_t::lastsave(time_t &tm)
 {
-    Request req(1);
+    request_t req(1);
     req.append("LASTSAVE");
 
 	int result;
@@ -1046,9 +1041,9 @@ int Redic::lastsave(time_t &tm)
 	return ok;
 }
 
-int Redic::bgrewriteaof()
+int redic_t::bgrewriteaof()
 {
-    Request req(1);
+    request_t req(1);
     req.append("BGREWRITEAOF");
 
 	string result;
@@ -1062,9 +1057,9 @@ int Redic::bgrewriteaof()
 	return ok;
 }
 
-int Redic::select(int index)
+int redic_t::select(int index)
 {
-    Request req(2);
+    request_t req(2);
     req.append("SELECT");
     req.append(index);
 
@@ -1079,9 +1074,9 @@ int Redic::select(int index)
 	return ok;
 }
 
-int Redic::randomkey(string &key)
+int redic_t::randomkey(string &key)
 {
-    Request req(1);
+    request_t req(1);
     req.append("RANDOMKEY");
 
 	if (entity->operate_bulk(key, req) != ok)
@@ -1090,9 +1085,9 @@ int Redic::randomkey(string &key)
 	return ok;
 }
 
-int Redic::dbsize()
+int redic_t::dbsize()
 {
-    Request req(1);
+    request_t req(1);
     req.append("DBSIZE");
 
     int result;
@@ -1106,9 +1101,9 @@ int Redic::dbsize()
 	return result;
 }
 
-int Redic::flushdb()
+int redic_t::flushdb()
 {
-    Request req(1);
+    request_t req(1);
     req.append("FLUSHDB");
 
 	string result;
@@ -1122,9 +1117,9 @@ int Redic::flushdb()
 	return ok;
 }
 
-int Redic::flushall()
+int redic_t::flushall()
 {
-    Request req(1);
+    request_t req(1);
     req.append("FLUSHALL");
 
 	string result;
@@ -1138,9 +1133,9 @@ int Redic::flushall()
 	return ok;
 }
 
-int Redic::keys(const char *pattern, List &keys)
+int redic_t::keys(const char *pattern, List &keys)
 {
-    Request req(2);
+    request_t req(2);
     req.append("KEYS");
     req.append(pattern);
 
@@ -1150,9 +1145,9 @@ int Redic::keys(const char *pattern, List &keys)
 	return ok;
 }
 
-int Redic::exists(const char *key)
+int redic_t::exists(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("EXISTS");
     req.append(key);
 
@@ -1163,16 +1158,16 @@ int Redic::exists(const char *key)
 
     if (result == 0)
         return REDIC_INVALID;
-
-	if (result != 1)
-		return REDIC_UNEXPECT;
+        
+    if (result != 1)
+    	return REDIC_UNEXPECT;
 
 	return ok;
 }
 
-int Redic::del(const char *key)
+int redic_t::del(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("DEL");
     req.append(key);
 
@@ -1190,9 +1185,9 @@ int Redic::del(const char *key)
 	return ok;
 }
 
-int Redic::type(const char *key, string &type)
+int redic_t::type(const char *key, string &type)
 {
-    Request req(2);
+    request_t req(2);
     req.append("TYPE");
     req.append(key);
 
@@ -1205,9 +1200,9 @@ int Redic::type(const char *key, string &type)
 	return ok;
 }
 
-int Redic::rename(const char *key, const char *newkey)
+int redic_t::rename(const char *key, const char *newkey)
 {
-    Request req(3);
+    request_t req(3);
     req.append("RENAME");
     req.append(key);
     req.append(newkey);
@@ -1223,9 +1218,9 @@ int Redic::rename(const char *key, const char *newkey)
 	return ok;
 }
 
-int Redic::renamenx(const char *key, const char *newkey)
+int redic_t::renamenx(const char *key, const char *newkey)
 {
-    Request req(3);
+    request_t req(3);
     req.append("RENAMENX");
     req.append(key);
     req.append(newkey);
@@ -1244,9 +1239,9 @@ int Redic::renamenx(const char *key, const char *newkey)
 	return ok;
 }
 
-int Redic::expire(const char *key, int secs)
+int redic_t::expire(const char *key, int secs)
 {
-    Request req(3);
+    request_t req(3);
     req.append("EXPIRE");
     req.append(key);
     req.append(secs);
@@ -1265,9 +1260,9 @@ int Redic::expire(const char *key, int secs)
 	return ok;
 }
 
-int Redic::ttl(const char *key)
+int redic_t::ttl(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("TTL");
     req.append(key);
 
@@ -1282,9 +1277,9 @@ int Redic::ttl(const char *key)
 	return result;
 }
 
-int Redic::move(const char *key, int index)
+int redic_t::move(const char *key, int index)
 {
-    Request req(3);
+    request_t req(3);
     req.append("MOVE");
     req.append(key);
     req.append(index);
@@ -1303,9 +1298,9 @@ int Redic::move(const char *key, int index)
 	return ok;
 }
 
-int Redic::append(const char *key, const char *value)
+int redic_t::append(const char *key, const char *value)
 {
-    Request req(3);
+    request_t req(3);
     req.append("APPEND");
     req.append(key);
     req.append(value);
@@ -1321,9 +1316,9 @@ int Redic::append(const char *key, const char *value)
 	return result;
 }
 
-int Redic::set(const char *key, const char *value)
+int redic_t::set(const char *key, const char *value)
 {
-    Request req(3);
+    request_t req(3);
     req.append("SET");
     req.append(key);
     req.append(value);
@@ -1339,9 +1334,9 @@ int Redic::set(const char *key, const char *value)
 	return ok;
 }
 
-int Redic::get(const char *key, string &value)
+int redic_t::get(const char *key, string &value)
 {
-    Request req(2);
+    request_t req(2);
     req.append("GET");
     req.append(key);
 
@@ -1351,9 +1346,9 @@ int Redic::get(const char *key, string &value)
 	return ok;
 }
 
-int Redic::getset(const char *key, const char *value, string &old_val)
+int redic_t::getset(const char *key, const char *value, string &old_val)
 {
-    Request req(3);
+    request_t req(3);
     req.append("GETSET");
     req.append(key);
     req.append(value);
@@ -1364,9 +1359,9 @@ int Redic::getset(const char *key, const char *value, string &old_val)
     return ok;
 }
 
-int Redic::setex(const char *key, int secs, const char *value)
+int redic_t::setex(const char *key, int secs, const char *value)
 {
-    Request req(4);
+    request_t req(4);
     req.append("SETEX");
     req.append(key);
     req.append(secs);
@@ -1383,9 +1378,9 @@ int Redic::setex(const char *key, int secs, const char *value)
     return ok;
 }
 
-int Redic::setnx(const char *key, const char *value)
+int redic_t::setnx(const char *key, const char *value)
 {
-    Request req(3);
+    request_t req(3);
     req.append("SETNX");
     req.append(key);
     req.append(value);
@@ -1404,9 +1399,9 @@ int Redic::setnx(const char *key, const char *value)
     return ok;
 }
 
-int Redic::strlen(const char *key)
+int redic_t::strlen(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("STRLEN");
     req.append(key);
 
@@ -1421,9 +1416,9 @@ int Redic::strlen(const char *key)
 	return result;
 }
 
-int Redic::substr(const char *key, int start, int end, string &value)
+int redic_t::substr(const char *key, int start, int end, string &value)
 {
-    Request req(4);
+    request_t req(4);
     req.append("SUBSTR");
     req.append(key);
     req.append(start);
@@ -1435,9 +1430,9 @@ int Redic::substr(const char *key, int start, int end, string &value)
     return ok;
 }
 
-int Redic::mget(const List &keys, List &values)
+int redic_t::mget(const List &keys, List &values)
 {
-    Request req(1+keys.size());
+    request_t req(1+keys.size());
     req.append("MGET");
 
 	for(List::const_iterator it=keys.begin(); it!=keys.end(); it++)
@@ -1449,9 +1444,9 @@ int Redic::mget(const List &keys, List &values)
     return ok;
 }
 
-int Redic::incr(const char *key, int &new_val)
+int redic_t::incr(const char *key, int &new_val)
 {
-    Request req(2);
+    request_t req(2);
     req.append("INCR");
     req.append(key);
 
@@ -1461,9 +1456,9 @@ int Redic::incr(const char *key, int &new_val)
     return ok;
 }
 
-int Redic::incrby(const char *key, int increment, int &new_val)
+int redic_t::incrby(const char *key, int increment, int &new_val)
 {
-    Request req(3);
+    request_t req(3);
     req.append("INCRBY");
     req.append(key);
     req.append(increment);
@@ -1474,9 +1469,9 @@ int Redic::incrby(const char *key, int increment, int &new_val)
     return ok;
 }
 
-int Redic::decr(const char *key, int &new_val)
+int redic_t::decr(const char *key, int &new_val)
 {
-    Request req(2);
+    request_t req(2);
     req.append("DECR");
     req.append(key);
 
@@ -1486,9 +1481,9 @@ int Redic::decr(const char *key, int &new_val)
     return ok;
 }
 
-int Redic::decrby(const char *key, int decrement, int &new_val)
+int redic_t::decrby(const char *key, int decrement, int &new_val)
 {
-    Request req(3);
+    request_t req(3);
     req.append("DECRBY");
     req.append(key);
     req.append(decrement);
@@ -1499,9 +1494,9 @@ int Redic::decrby(const char *key, int decrement, int &new_val)
     return ok;
 }
 
-int Redic::rpush(const char *key, const char *element)
+int redic_t::rpush(const char *key, const char *element)
 {
-    Request req(3);
+    request_t req(3);
     req.append("RPUSH");
     req.append(key);
     req.append(element);
@@ -1517,9 +1512,9 @@ int Redic::rpush(const char *key, const char *element)
 	return result;
 }
 
-int Redic::rpushx(const char *key, const char *element)
+int redic_t::rpushx(const char *key, const char *element)
 {
-    Request req(3);
+    request_t req(3);
     req.append("RPUSHX");
     req.append(key);
     req.append(element);
@@ -1535,9 +1530,9 @@ int Redic::rpushx(const char *key, const char *element)
 	return result;
 }
 
-int Redic::lpush(const char *key, const char *element)
+int redic_t::lpush(const char *key, const char *element)
 {
-    Request req(3);
+    request_t req(3);
     req.append("LPUSH");
     req.append(key);
     req.append(element);
@@ -1553,9 +1548,9 @@ int Redic::lpush(const char *key, const char *element)
 	return result;
 }
 
-int Redic::lpushx(const char *key, const char *element)
+int redic_t::lpushx(const char *key, const char *element)
 {
-    Request req(3);
+    request_t req(3);
     req.append("LPUSHX");
     req.append(key);
     req.append(element);
@@ -1571,9 +1566,9 @@ int Redic::lpushx(const char *key, const char *element)
 	return result;
 }
 
-int Redic::lpop(const char *key, string &element)
+int redic_t::lpop(const char *key, string &element)
 {
-    Request req(2);
+    request_t req(2);
     req.append("LPOP");
     req.append(key);
 
@@ -1583,9 +1578,9 @@ int Redic::lpop(const char *key, string &element)
 	return ok;
 }
 
-int Redic::rpop(const char *key, string &element)
+int redic_t::rpop(const char *key, string &element)
 {
-    Request req(2);
+    request_t req(2);
     req.append("RPOP");
     req.append(key);
 
@@ -1595,9 +1590,9 @@ int Redic::rpop(const char *key, string &element)
 	return ok;
 }
 
-int Redic::llen(const char *key)
+int redic_t::llen(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("LLEN");
     req.append(key);
 
@@ -1612,9 +1607,9 @@ int Redic::llen(const char *key)
 	return result;
 }
 
-int Redic::lrange(const char *key, int start, int range, List &elements)
+int redic_t::lrange(const char *key, int start, int range, List &elements)
 {
-    Request req(4);
+    request_t req(4);
     req.append("LRANGE");
     req.append(key);
     req.append(start);
@@ -1626,9 +1621,9 @@ int Redic::lrange(const char *key, int start, int range, List &elements)
 	return ok;
 }
 
-int Redic::ltrim(const char *key, int start, int end)
+int redic_t::ltrim(const char *key, int start, int end)
 {
-    Request req(4);
+    request_t req(4);
     req.append("LTRIM");
     req.append(key);
     req.append(start);
@@ -1645,9 +1640,9 @@ int Redic::ltrim(const char *key, int start, int end)
 	return ok;
 }
 
-int Redic::lset(const char *key, int index, const char *element)
+int redic_t::lset(const char *key, int index, const char *element)
 {
-    Request req(4);
+    request_t req(4);
     req.append("LSET");
     req.append(key);
     req.append(index);
@@ -1664,9 +1659,9 @@ int Redic::lset(const char *key, int index, const char *element)
 	return ok;
 }
 
-int Redic::lindex(const char *key, int index, string &element)
+int redic_t::lindex(const char *key, int index, string &element)
 {
-    Request req(3);
+    request_t req(3);
     req.append("LINDEX");
     req.append(key);
     req.append(index);
@@ -1680,9 +1675,9 @@ int Redic::lindex(const char *key, int index, string &element)
 ///count > 0: Remove elements from head to tail.
 ///count < 0: Remove elements from tail to head.
 ///count = 0: Remove all elements.
-int Redic::lrem(const char *key, int count, const char *element)
+int redic_t::lrem(const char *key, int count, const char *element)
 {
-    Request req(4);
+    request_t req(4);
     req.append("LREM");
     req.append(key);
     req.append(count);
@@ -1699,9 +1694,9 @@ int Redic::lrem(const char *key, int count, const char *element)
 	return result;
 }
 
-int Redic::sadd(const char *key, const char *member)
+int redic_t::sadd(const char *key, const char *member)
 {
-    Request req(3);
+    request_t req(3);
     req.append("SADD");
     req.append(key);
     req.append(member);
@@ -1720,9 +1715,9 @@ int Redic::sadd(const char *key, const char *member)
 	return ok;
 }
 
-int Redic::srem(const char *key, const char *member)
+int redic_t::srem(const char *key, const char *member)
 {
-    Request req(3);
+    request_t req(3);
     req.append("SREM");
     req.append(key);
     req.append(member);
@@ -1741,9 +1736,9 @@ int Redic::srem(const char *key, const char *member)
 	return ok;
 }
 
-int Redic::spop(const char *key, string &value)
+int redic_t::spop(const char *key, string &value)
 {
-    Request req(2);
+    request_t req(2);
     req.append("SPOP");
     req.append(key);
 
@@ -1753,9 +1748,9 @@ int Redic::spop(const char *key, string &value)
 	return ok;
 }
 
-int Redic::smove(const char *srckey, const char *destkey, const char *member)
+int redic_t::smove(const char *srckey, const char *destkey, const char *member)
 {
-    Request req(4);
+    request_t req(4);
     req.append("SMOVE");
     req.append(srckey);
     req.append(destkey);
@@ -1775,9 +1770,9 @@ int Redic::smove(const char *srckey, const char *destkey, const char *member)
 	return ok;
 }
 
-int Redic::scard(const char *key)
+int redic_t::scard(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("SCARD");
     req.append(key);
 
@@ -1792,9 +1787,9 @@ int Redic::scard(const char *key)
 	return result;
 }
 
-int Redic::sismember(const char *key, const char *member)
+int redic_t::sismember(const char *key, const char *member)
 {
-    Request req(3);
+    request_t req(3);
     req.append("SISMEMBER");
     req.append(key);
     req.append(member);
@@ -1813,9 +1808,9 @@ int Redic::sismember(const char *key, const char *member)
 	return result;
 }
 
-int Redic::sinter(const Set &keys, Set &members)
+int redic_t::sinter(const Set &keys, Set &members)
 {
-    Request req(1+keys.size());
+    request_t req(1+keys.size());
     req.append("SINTER");
 
 	for(Set::const_iterator it=keys.begin(); it!=keys.end(); it++)
@@ -1827,9 +1822,9 @@ int Redic::sinter(const Set &keys, Set &members)
     return ok;
 }
 
-int Redic::sinterstore(const char *destkey, const Set &keys)
+int redic_t::sinterstore(const char *destkey, const Set &keys)
 {
-    Request req(2+keys.size());
+    request_t req(2+keys.size());
     req.append("SINTERSTORE");
     req.append(destkey);
 
@@ -1847,9 +1842,9 @@ int Redic::sinterstore(const char *destkey, const Set &keys)
     return result;
 }
 
-int Redic::sunion(const Set &keys, Set &members)
+int redic_t::sunion(const Set &keys, Set &members)
 {
-    Request req(1+keys.size());
+    request_t req(1+keys.size());
     req.append("SUNION");
 
 	for(Set::const_iterator it=keys.begin(); it!=keys.end(); it++)
@@ -1861,9 +1856,9 @@ int Redic::sunion(const Set &keys, Set &members)
     return ok;
 }
 
-int Redic::sunionstore(const char *destkey, const Set &keys)
+int redic_t::sunionstore(const char *destkey, const Set &keys)
 {
-    Request req(2+keys.size());
+    request_t req(2+keys.size());
     req.append("SUNIONSTORE");
     req.append(destkey);
 
@@ -1881,9 +1876,9 @@ int Redic::sunionstore(const char *destkey, const Set &keys)
     return result;
 }
 
-int Redic::sdiff(const Set &keys, Set &members)
+int redic_t::sdiff(const Set &keys, Set &members)
 {
-    Request req(1+keys.size());
+    request_t req(1+keys.size());
     req.append("SDIFF");
 
 	for(Set::const_iterator it=keys.begin(); it!=keys.end(); it++)
@@ -1895,9 +1890,9 @@ int Redic::sdiff(const Set &keys, Set &members)
     return ok;
 }
 
-int Redic::sdiffstore(const char *destkey, const Set &keys)
+int redic_t::sdiffstore(const char *destkey, const Set &keys)
 {
-    Request req(2+keys.size());
+    request_t req(2+keys.size());
     req.append("SDIFFSTORE");
     req.append(destkey);
 
@@ -1915,9 +1910,9 @@ int Redic::sdiffstore(const char *destkey, const Set &keys)
     return result;
 }
 
-int Redic::smembers(const char *key, Set &members)
+int redic_t::smembers(const char *key, Set &members)
 {
-    Request req(2);
+    request_t req(2);
     req.append("SMEMBERS");
     req.append(key);
 
@@ -1927,9 +1922,9 @@ int Redic::smembers(const char *key, Set &members)
 	return ok;
 }
 
-int Redic::srandmember(const char *key, string &member)
+int redic_t::srandmember(const char *key, string &member)
 {
-    Request req(2);
+    request_t req(2);
     req.append("SRANDMEMBER");
     req.append(key);
 
@@ -1939,9 +1934,9 @@ int Redic::srandmember(const char *key, string &member)
 	return ok;
 }
 
-int Redic::zadd(const char *key, double score, const char *member)
+int redic_t::zadd(const char *key, double score, const char *member)
 {
-    Request req(4);
+    request_t req(4);
     req.append("ZADD");
     req.append(key);
     req.append(score);
@@ -1958,9 +1953,9 @@ int Redic::zadd(const char *key, double score, const char *member)
 	return ok;
 }
 
-int Redic::zrem(const char *key, const char *member)
+int redic_t::zrem(const char *key, const char *member)
 {
-    Request req(3);
+    request_t req(3);
     req.append("ZREM");
     req.append(key);
     req.append(member);
@@ -1979,9 +1974,9 @@ int Redic::zrem(const char *key, const char *member)
 	return ok;
 }
 
-int Redic::zincrby(const char *key, double increment, const char *member, double &new_score)
+int redic_t::zincrby(const char *key, double increment, const char *member, double &new_score)
 {
-    Request req(4);
+    request_t req(4);
     req.append("ZINCRBY");
     req.append(key);
     req.append(increment);
@@ -1996,9 +1991,9 @@ int Redic::zincrby(const char *key, double increment, const char *member, double
 	return ok;
 }
 
-int Redic::zrank(const char *key, const char *member)
+int redic_t::zrank(const char *key, const char *member)
 {
-    Request req(3);
+    request_t req(3);
     req.append("ZRANK");
     req.append(key);
     req.append(member);
@@ -2014,9 +2009,9 @@ int Redic::zrank(const char *key, const char *member)
 	return result;
 }
 
-int Redic::zrevrank(const char *key, const char *member)
+int redic_t::zrevrank(const char *key, const char *member)
 {
-    Request req(3);
+    request_t req(3);
     req.append("ZREVRANK");
     req.append(key);
     req.append(member);
@@ -2032,9 +2027,9 @@ int Redic::zrevrank(const char *key, const char *member)
 	return result;
 }
 
-int Redic::zrange(const char *key, int start, int stop, List &elements)
+int redic_t::zrange(const char *key, int start, int stop, List &elements)
 {
-    Request req(4);
+    request_t req(4);
     req.append("ZRANGE");
     req.append(key);
     req.append(start);
@@ -2046,9 +2041,9 @@ int Redic::zrange(const char *key, int start, int stop, List &elements)
 	return ok;
 }
 
-int Redic::zrevrange(const char *key, int start, int stop, List &elements)
+int redic_t::zrevrange(const char *key, int start, int stop, List &elements)
 {
-    Request req(4);
+    request_t req(4);
     req.append("ZREVRANGE");
     req.append(key);
     req.append(start);
@@ -2060,9 +2055,9 @@ int Redic::zrevrange(const char *key, int start, int stop, List &elements)
 	return ok;
 }
 
-int Redic::zcard(const char *key)
+int redic_t::zcard(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("ZCARD");
     req.append(key);
 
@@ -2080,9 +2075,9 @@ int Redic::zcard(const char *key)
 	return result;
 }
 
-int Redic::zscore(const char *key, const char *member, double &score)
+int redic_t::zscore(const char *key, const char *member, double &score)
 {
-    Request req(3);
+    request_t req(3);
     req.append("ZSCORE");
     req.append(key);
     req.append(member);
@@ -2096,9 +2091,9 @@ int Redic::zscore(const char *key, const char *member, double &score)
 	return ok;
 }
 
-int Redic::zremrangebyscore(const char *key, double min, double max)
+int redic_t::zremrangebyscore(const char *key, double min, double max)
 {
-    Request req(4);
+    request_t req(4);
     req.append("ZREMRANGEBYSCORE");
     req.append(key);
     req.append(min);
@@ -2115,9 +2110,9 @@ int Redic::zremrangebyscore(const char *key, double min, double max)
 	return result;
 }
 
-int Redic::zremrangebyrank(const char *key, int start, int stop)
+int redic_t::zremrangebyrank(const char *key, int start, int stop)
 {
-    Request req(4);
+    request_t req(4);
     req.append("ZREMRANGEBYRANK");
     req.append(key);
     req.append(start);
@@ -2134,9 +2129,9 @@ int Redic::zremrangebyrank(const char *key, int start, int stop)
 	return result;
 }
 
-int Redic::zcount(const char *key, double min, double max)
+int redic_t::zcount(const char *key, double min, double max)
 {
-    Request req(4);
+    request_t req(4);
     req.append("ZCOUNT");
     req.append(key);
     req.append(min);
@@ -2153,9 +2148,9 @@ int Redic::zcount(const char *key, double min, double max)
 	return result;
 }
 
-int Redic::hset(const char *key, const char *field, const char *value)
+int redic_t::hset(const char *key, const char *field, const char *value)
 {
-    Request req(4);
+    request_t req(4);
     req.append("HSET");
     req.append(key);
     req.append(field);
@@ -2172,9 +2167,9 @@ int Redic::hset(const char *key, const char *field, const char *value)
 	return ok;
 }
 
-int Redic::hsetnx(const char *key, const char *field, const char *value)
+int redic_t::hsetnx(const char *key, const char *field, const char *value)
 {
-    Request req(4);
+    request_t req(4);
     req.append("HSETNX");
     req.append(key);
     req.append(field);
@@ -2194,9 +2189,9 @@ int Redic::hsetnx(const char *key, const char *field, const char *value)
 	return ok;
 }
 
-int Redic::hget(const char *key, const char *field, string &value)
+int redic_t::hget(const char *key, const char *field, string &value)
 {
-    Request req(3);
+    request_t req(3);
     req.append("HGET");
     req.append(key);
     req.append(field);
@@ -2207,9 +2202,9 @@ int Redic::hget(const char *key, const char *field, string &value)
 	return ok;
 }
 
-int Redic::hmset(const char *key, const List &pairs)
+int redic_t::hmset(const char *key, const List &pairs)
 {
-    Request req(2+pairs.size());
+    request_t req(2+pairs.size());
     req.append("HMSET");
     req.append(key);
 
@@ -2227,9 +2222,9 @@ int Redic::hmset(const char *key, const List &pairs)
 	return ok;
 }
 
-int Redic::hmget(const char *key, const List &fields, List &values)
+int redic_t::hmget(const char *key, const List &fields, List &values)
 {
-    Request req(2+fields.size());
+    request_t req(2+fields.size());
     req.append("HMGET");
     req.append(key);
 
@@ -2242,9 +2237,9 @@ int Redic::hmget(const char *key, const List &fields, List &values)
 	return ok;
 }
 
-int Redic::hkeys(const char *key, List &fields)
+int redic_t::hkeys(const char *key, List &fields)
 {
-    Request req(2);
+    request_t req(2);
     req.append("HKEYS");
     req.append(key);
 
@@ -2254,9 +2249,9 @@ int Redic::hkeys(const char *key, List &fields)
 	return ok;
 }
 
-int Redic::hvals(const char *key, List &values)
+int redic_t::hvals(const char *key, List &values)
 {
-    Request req(2);
+    request_t req(2);
     req.append("HVALS");
     req.append(key);
 
@@ -2266,9 +2261,9 @@ int Redic::hvals(const char *key, List &values)
 	return ok;
 }
 
-int Redic::hgetall(const char *key, List &pairs)
+int redic_t::hgetall(const char *key, List &pairs)
 {
-    Request req(2);
+    request_t req(2);
     req.append("HGETALL");
     req.append(key);
 
@@ -2278,9 +2273,9 @@ int Redic::hgetall(const char *key, List &pairs)
 	return ok;
 }
 
-int Redic::hexists(const char *key, const char *field)
+int redic_t::hexists(const char *key, const char *field)
 {
-    Request req(3);
+    request_t req(3);
     req.append("HEXISTS");
     req.append(key);
     req.append(field);
@@ -2299,9 +2294,9 @@ int Redic::hexists(const char *key, const char *field)
 	return ok;
 }
 
-int Redic::hdel(const char *key, const char *field)
+int redic_t::hdel(const char *key, const char *field)
 {
-    Request req(3);
+    request_t req(3);
     req.append("HDEL");
     req.append(key);
     req.append(field);
@@ -2320,9 +2315,9 @@ int Redic::hdel(const char *key, const char *field)
 	return ok;
 }
 
-int Redic::hlen(const char *key)
+int redic_t::hlen(const char *key)
 {
-    Request req(2);
+    request_t req(2);
     req.append("HLEN");
     req.append(key);
 
@@ -2337,9 +2332,9 @@ int Redic::hlen(const char *key)
 	return result;
 }
 
-int Redic::hincrby(const char *key, const char *field, int increment, int &new_val)
+int redic_t::hincrby(const char *key, const char *field, int increment, int &new_val)
 {
-    Request req(4);
+    request_t req(4);
     req.append("HINCRBY");
     req.append(key);
     req.append(field);

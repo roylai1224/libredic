@@ -24,7 +24,7 @@
 #include <set>
 #include <string>
 using std::string;
-class RedicEntity;
+class redic_entity_t;
 
 
 #ifndef LENGTH_MAX
@@ -36,15 +36,15 @@ class RedicEntity;
 #endif
 
 
-class Redic
+class redic_t
 {
 public:
 	typedef std::list<string> List;
 	typedef std::set<string> Set;
 	enum { ok = 1 };
 
-	Redic();
-	~Redic();
+	redic_t();
+	~redic_t();
 	const char *errstr(int num);
 
     ///Connect to Redis server, Return ok if succeed.
@@ -98,7 +98,7 @@ public:
 
     /* key operation */
 
-    ///Return ok if key exists
+    ///Return ok if a key exists
     int exists(const char *key);
 
     ///Remove the specified keys.
@@ -199,7 +199,7 @@ public:
     ///Trim an existing list to contain only the specified range of elements.
 	int ltrim(const char *key, int start, int end);
 
-    ///Sets the list element at index to value.
+    ///Set the list element at index to value.
 	int lset(const char *key, int index, const char *element);
 
     ///Get the element at index in the list stored at key.
@@ -218,13 +218,13 @@ public:
     ///Remove member from the set stored at key.
     int srem(const char *key, const char *member);
 
-    ///Removes and returns a random element from the set value stored at key.
+    ///Remove and return a random element from the set value stored at key.
     int spop(const char *key, string &value);
 
     ///Move member from the set at source to the set at destination.
 	int smove(const char *srckey, const char *destkey, const char *member);
 
-	///Returns the number of members of the set stored at key.
+	///Return the number of members of the set stored at key.
 	int scard(const char *key);
 
 	///Make sure if member is a member of the set stored at key.
@@ -284,13 +284,13 @@ public:
 	///Get the score of member in the sorted set at key.
 	int zscore(const char *key, const char *member, double &score);
 
-	///Removes all elements in the sorted set with rank between start and stop.
+	///Remove all elements in the sorted set with rank between start and stop.
 	int zremrangebyscore(const char *key, double min, double max);
 
-	///Removes all elements in the sorted set with score between min and max.
+	///Remove all elements in the sorted set with score between min and max.
 	int zremrangebyrank(const char *key, int start, int end);
 
-    ///Returns the number of elements in the sorted set with score between min and max.
+    ///Return the number of elements in the sorted set with score between min and max.
 	int zcount(const char *key, double min, double max);
 
     /* hash operation */
@@ -316,7 +316,7 @@ public:
     ///Get all values of the hash stored at key.
     int hvals(const char *key, List &values);
 
-    ///Returns all fields and values of the hash stored at key.
+    ///Return all fields and values of the hash stored at key.
     int hgetall(const char *key, List &fileds_values);
 
     ///Test if field is an existing field in the hash stored at key.
@@ -332,7 +332,7 @@ public:
     int hincrby(const char *key, const char *field, int increment, int &new_val);
 
 private:
-	RedicEntity *entity;
+	redic_entity_t *entity;
 };
 
 #endif //_REDIC_H_
