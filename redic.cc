@@ -149,12 +149,10 @@ class RedicEntity
 {
 private:
 	bool ready;
-
-	sockaddr sa;
-	timeval tv;
 	int fd;
 
-	char buffer[64];
+	timeval tv;
+	char buffer[1024];
 	int head;
 	int tail;
 
@@ -174,6 +172,7 @@ public:
 #endif
 
 		ready = false;
+		fd = -1;
 	}
 
 	~RedicEntity()
@@ -189,6 +188,8 @@ public:
 	int conn(const char *host, short port)
 	{
 		disconn();
+
+		sockaddr sa;
 
         if (is_in4(host))
         {
@@ -635,8 +636,7 @@ public:
         int num = atoi(tmp.c_str());
         if (num <= 0)
         {
-			LOG("illegal bulk size [%s]", tmp.c_str());
-			err = Redic::SYNTAX_ERR;
+			err = Redic::RECORD_NUL;
 			return xx;
         }
 
@@ -681,10 +681,9 @@ public:
 		}
 
 		int num = atoi(tmp.c_str());
-		if (num < 0)
+		if (num <= 0)
 		{
-			LOG("illegal list size [%s]", tmp.c_str());
-			err = Redic::SYNTAX_ERR;
+			err = Redic::RECORD_NUL;
 			return xx;
 		}
 
@@ -732,10 +731,9 @@ public:
 		}
 
 		int num = atoi(tmp.c_str());
-		if (num < 0)
+		if (num <= 0)
 		{
-			LOG("illegal set size [%s]", tmp.c_str());
-			err = Redic::SYNTAX_ERR;
+			err = Redic::RECORD_NUL;
 			return xx;
 		}
 
@@ -841,32 +839,24 @@ public:
 
 Redic::Redic()
 {
-	entity = NULL;
+	entity = new RedicEntity;
 }
 
 Redic::~Redic()
 {
-	if (entity)
-	{
-		delete entity;
-	}
+	delete entity;
 }
 
 int Redic::connect(const char *host, short port)
 {
     host = host ? host : "localhost";
     port = port ? port : 6379;
-
-    entity = new RedicEntity;
 	return entity->conn(host, port);
 }
 
 void Redic::disconn()
 {
-	if (entity)
-	{
-		entity->disconn();
-	}
+	entity->disconn();
 }
 
 int Redic::auth(const char *password)
@@ -1074,7 +1064,7 @@ int Redic::exists(const char *key)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
 	if (result != 1)
 		return SYNTAX_ERR;
@@ -1094,7 +1084,7 @@ int Redic::del(const char *key)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
 	if (result != 1)
 		return SYNTAX_ERR;
@@ -1112,7 +1102,7 @@ int Redic::type(const char *key, string &type)
 		return entity->errnum();
 
     if (type == "none")
-        return KEY_INVALID;
+        return RECORD_NUL;
 
 	return OK;
 }
@@ -1148,7 +1138,7 @@ int Redic::renamenx(const char *key, const char *newkey)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
 	if (result != 1)
 		return SYNTAX_ERR;
@@ -1169,7 +1159,7 @@ int Redic::expire(const char *key, int secs)
 		return entity->errnum();
 
 	if (result == 0)
-		return KEY_INVALID;
+		return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1208,7 +1198,7 @@ int Redic::move(const char *key, int index)
 		return entity->errnum();
 
 	if (result == 0)
-		return KEY_INVALID;
+		return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1310,7 +1300,7 @@ int Redic::setnx(const char *key, const char *value)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1633,7 +1623,7 @@ int Redic::sadd(const char *key, const char *member)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1654,7 +1644,7 @@ int Redic::srem(const char *key, const char *member)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1688,7 +1678,7 @@ int Redic::smove(const char *srckey, const char *destkey, const char *member)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1727,7 +1717,7 @@ int Redic::sismember(const char *key, const char *member)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1896,7 +1886,7 @@ int Redic::zrem(const char *key, const char *member)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -1999,7 +1989,7 @@ int Redic::zcard(const char *key, int& length)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result < 0)
         return SYNTAX_ERR;
@@ -2117,7 +2107,7 @@ int Redic::hsetnx(const char *key, const char *field, const char *value)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -2222,7 +2212,7 @@ int Redic::hexists(const char *key, const char *field)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;
@@ -2243,7 +2233,7 @@ int Redic::hdel(const char *key, const char *field)
 		return entity->errnum();
 
     if (result == 0)
-        return KEY_INVALID;
+        return RECORD_NUL;
 
     if (result != 1)
         return SYNTAX_ERR;

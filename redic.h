@@ -42,7 +42,7 @@ public:
 	    OK,
 
         //error code
-        KEY_INVALID,
+        RECORD_NUL,
         SERVER_ERR,
         CONNECT_ERR,
 	    SYNTAX_ERR,
